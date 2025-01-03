@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "lifestealmod",
+	"version": "${version}",
+	"name": "Lifesteal Mod",
+	"description": "This mod is exactly what it sounds like. Life steal. Kill a player, steal their heart. Die, lose a heart. You can also craft hearts.",
+	"authors": [
+		"Pyric"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/lifestealmod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.pyric.lifestealmod.LifestealMod"
+		],
+		"fabric-datagen": [
+			"com.pyric.lifestealmod.LifestealModDataGenerator"
+		]
+	},
+	"mixins": [
+		"lifestealmod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.9",
+		"minecraft": "~1.21.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

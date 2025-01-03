@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": "minecraft:totem_of_undying",
+    "I": "minecraft:nether_star",
+    "X": "minecraft:heavy_core",
+    "N": "minecraft:netherite_ingot"
+  },
+  "pattern": [
+    "N N",
+    "#X#",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "lifestealmod:heart"
+  }
+}
