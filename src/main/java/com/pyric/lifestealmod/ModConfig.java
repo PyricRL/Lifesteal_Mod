@@ -1,30 +1,68 @@
 package com.pyric.lifestealmod;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import com.terraformersmc.modmenu.util.mod.Mod;
+import net.fabricmc.loader.api.FabricLoader;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 public class ModConfig{
-    // Heart cap 40 sets max hearts to 20
-    public static int maxHealthCap = 40;
+    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("hardcover.json");
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static ModConfig config;
 
-    // Heart min at 14 sets min hearts to 7
-    public static int minHealthCap = 14;
+    public static final int defaultMaxHeartCap = 20;
+    public static final int defaultMinHeartCap = 7;
+    public static final int defaultHeartIncrease = 1;
+    public static final int defaultHeartDecrease = 1;
+    public static final boolean defaultHeartRegen = true;
+    public static final int defaultHeartRegenAmount = 10;
+    public static final int defaultHeartRegenTime = 30;
+    public static final boolean defaultHeartWithdraw = true;
 
-    // Health increase set to 2 increases health by 1 heart each time
-    public static double healthIncrease = 2.0;
+    public int maxHeartCap;
+    public int minHeartCap;
+    public int heartIncrease;
+    public int heartDecrease;
+    public boolean heartRegen;
+    public int heartRegenAmount;
+    public int heartRegenTime;
+    public boolean heartWithdraw;
 
-    // Health decrease set to 2 decreases health by 1 heart each time
-    public static double healthDecrease = 2.0;
+    public ModConfig() {
+        this.maxHeartCap = defaultMaxHeartCap;
+        this.minHeartCap = defaultMinHeartCap;
+        this.heartIncrease = defaultHeartIncrease;
+        this.heartDecrease = defaultHeartDecrease;
+        this.heartRegen = defaultHeartRegen;
+        this.heartRegenAmount = defaultHeartRegenAmount;
+        this.heartRegenTime = defaultHeartRegenTime;
+        this.heartWithdraw = defaultHeartWithdraw;
+    }
 
-    // Sets whether hearts have the ability to be crafted
-    public static boolean heartCraft = true;
+    public static ModConfig instance() {
+        return config == null ? config = load() : config;
+    }
 
-    // Sets whether a player under a certain amount of hearts gains hearts after a period of time
-    public static boolean heartRegen = true;
+    private static ModConfig load() {
+        if (Files.exists(CONFIG_FILE)) {
+            try (var reader = Files.newBufferedReader(CONFIG_FILE)) {
+                return GSON.fromJson(reader, ModConfig.class);
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
+            }
+        }
+        return new ModConfig();
+    }
 
-    // Sets max health to regen, 20 is health regen amount is 10 hearts
-    public static double healthRegenAmount = 20.0;
-
-    // Sets the amount of time to regen a player heart  (in minutes)
-    public static int heartRegenTime = 30;
-
-    // Sets whether a player can withdraw hearts
-    public static boolean heartWithdraw = true;
+    public void save() {
+        try (var writer = Files.newBufferedWriter(CONFIG_FILE)) {
+            GSON.toJson(config, writer);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
 }

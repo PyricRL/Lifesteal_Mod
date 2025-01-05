@@ -34,6 +34,7 @@ public class LifestealMod implements ModInitializer {
         ModItems.registerModItems();
 
         CommandRegistrationCallback.EVENT.register(LifestealCommand::registerCommands);
+        ModConfig.instance().save();
     }
 
     /**
@@ -60,13 +61,13 @@ public class LifestealMod implements ModInitializer {
                     double attackerMaxHealth = attacker.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
                     // if attacker health is less than max heart cap
-                    if (attackerMaxHealth < ModConfig.maxHealthCap) {
+                    if (attackerMaxHealth < ModConfig.instance().maxHeartCap * 2) {
 
                         // if killed player health cap is above min heart cap
-                        if (playerMaxHealth > ModConfig.minHealthCap) {
+                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
                             // increase player health and send a message to the player
-                            increasePlayerHealth(attacker, ModConfig.healthIncrease);
+                            increasePlayerHealth(attacker, (double) ModConfig.instance().heartIncrease * 2);
                             attacker.sendMessage(Text.literal("You gained a heart!"), false);
                         }
 
@@ -76,11 +77,11 @@ public class LifestealMod implements ModInitializer {
                         }
                     }
 
-                    if (attackerMaxHealth >= ModConfig.maxHealthCap) {
-                        if (playerMaxHealth > ModConfig.minHealthCap) {
+                    if (attackerMaxHealth >= ModConfig.instance().maxHeartCap * 2) {
+                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
-                            // increase player health, send message to player, and drop heart
-                            decreasePlayerHealth(player, ModConfig.healthDecrease);
+                            // decrease player health, send message to attacker, and drop heart
+                            decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
                             attacker.sendMessage(Text.literal("You have reached the maximum heart limit, a heart has been dropped!"), false);
                             attacker.giveItemStack(heartStack);
                         }
@@ -92,7 +93,7 @@ public class LifestealMod implements ModInitializer {
                     }
 
                     // if killed player health is greater than min health cap
-                    if (playerMaxHealth > ModConfig.minHealthCap) {
+                    if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
                         // decrease player health and send a message to the player
                         player.sendMessage(Text.literal("You lost a heart!"), false);
@@ -130,7 +131,7 @@ public class LifestealMod implements ModInitializer {
                     double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
                     // if player max health is greater or equal to max health cap
-                    if (playerMaxHealth >= ModConfig.maxHealthCap) {
+                    if (playerMaxHealth >= ModConfig.instance().maxHeartCap * 2) {
 
                         // send message and cancel action
                         player.sendMessage(Text.literal("You have reached the maximum heart limit!"), false);
@@ -138,7 +139,7 @@ public class LifestealMod implements ModInitializer {
                     }
 
                     // increase player health and tell player that it happened
-                    increasePlayerHealth(player, ModConfig.healthIncrease);
+                    increasePlayerHealth(player, (double) ModConfig.instance().heartIncrease * 2);
                     player.sendMessage(Text.literal("You gained a heart!"), false);
 
                     // take away the item
@@ -158,7 +159,7 @@ public class LifestealMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register((server) -> {
 
             // if heart regen is turned on
-            if (ModConfig.heartRegen) {
+            if (ModConfig.instance().heartRegen) {
                 // for each player in the server
                 for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
 
@@ -166,13 +167,13 @@ public class LifestealMod implements ModInitializer {
                     int cooldown = newHeartCooldown.getOrDefault(player.getUuid(), 0);
 
                     // if player max health is less set max health
-                    if (player.getMaxHealth() < ModConfig.healthRegenAmount) {
+                    if (player.getMaxHealth() < (double) ModConfig.instance().heartRegenAmount * 2) {
 
                         // increment cooldown and check if its greater or equal to heartRegenTime * 1200 (used so the config is easier to configure)
-                        if (++cooldown >= ModConfig.heartRegenTime * 1200) {
+                        if (++cooldown >= ModConfig.instance().heartRegenTime * 1200) {
 
                             // increase player health, send message, and reset cooldown
-                            increasePlayerHealth(player, ModConfig.healthIncrease);
+                            increasePlayerHealth(player, (double) ModConfig.instance().heartIncrease * 2);
                             player.sendMessage(Text.literal("You gained a heart!"), false);
                             cooldown = 0;
                         }

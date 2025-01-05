@@ -8,10 +8,11 @@
 		"Pyric"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://modrinth.com/project/lifesteal-pyric",
+		"sources": "https://github.com/PyricRL/Lifesteal_Mod",
+		"issues": "https://github.com/PyricRL/Lifesteal_Mod/issues"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/lifestealmod/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -20,6 +21,9 @@
 		],
 		"fabric-datagen": [
 			"com.pyric.lifestealmod.LifestealModDataGenerator"
+		],
+		"modmenu": [
+			"com.pyric.lifestealmod.LifestealModModMenuIntegration"
 		]
 	},
 	"mixins": [
@@ -33,5 +37,11 @@
 	},
 	"suggests": {
 		"another-mod": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"update_checker": true,
+			"modmenu:api": true
+		}
 	}
 }

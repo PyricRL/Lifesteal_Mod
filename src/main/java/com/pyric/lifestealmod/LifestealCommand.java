@@ -22,27 +22,34 @@ public class LifestealCommand {
         ServerCommandSource source = context.getSource();
         ServerPlayerEntity player = source.getPlayer();
 
-        int amount = IntegerArgumentType.getInteger(context, "amount");
-
-        double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
-
-        if (playerMaxHealth - amount * 2 < ModConfig.minHealthCap) {
-            player.sendMessage(Text.literal("Cannot withdraw hearts under " + ModConfig.minHealthCap / 2 + "!"), false);
+        if (!ModConfig.instance().heartWithdraw) {
+            player.sendMessage(Text.literal("This command is disabled within the mod configuration"), false);
             return 0;
         }
 
-        if (playerMaxHealth * 2.0 >= amount * 2) {
-            LifestealMod.decreasePlayerHealth(player, amount * 2);
+        else {
+            int amount = IntegerArgumentType.getInteger(context, "amount");
 
-            ItemStack heartStack = new ItemStack(ModItems.HEART, amount);
-            player.giveItemStack(heartStack);
+            double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
-            player.sendMessage(Text.literal("Heart withdrawn successfully!"), false);
-            return 1;
-        } else {
-            player.sendMessage(Text.literal("Heart withdraw failure!"), false);
+            if (playerMaxHealth - amount * 2 < ModConfig.instance().minHeartCap * 2) {
+                player.sendMessage(Text.literal("Cannot withdraw hearts under " + ModConfig.instance().minHeartCap + "!"), false);
+                return 0;
+            }
+
+            if (playerMaxHealth * 2.0 >= amount * 2) {
+                LifestealMod.decreasePlayerHealth(player, amount * 2);
+
+                ItemStack heartStack = new ItemStack(ModItems.HEART, amount);
+                player.giveItemStack(heartStack);
+
+                player.sendMessage(Text.literal("Heart withdrawn successfully!"), false);
+                return 1;
+            } else {
+                player.sendMessage(Text.literal("Heart withdraw failure!"), false);
+            }
+            return 0;
         }
-        return 0;
     }
 
     private static int runResetPlayerCommandServer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
@@ -66,7 +73,6 @@ public class LifestealCommand {
     private static LiteralCommandNode<ServerCommandSource> withdrawCommand() {
         LiteralCommandNode<ServerCommandSource> withdrawNode = CommandManager
                 .literal("withdraw")
-                .requires(source -> ModConfig.heartWithdraw)
                 .build();
         ArgumentCommandNode<ServerCommandSource, Integer> withdrawAmountNode = CommandManager
                 .argument("amount", IntegerArgumentType.integer(0))
