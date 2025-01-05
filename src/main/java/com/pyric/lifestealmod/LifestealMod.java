@@ -23,10 +23,11 @@ public class LifestealMod implements ModInitializer {
     public static final String MOD_ID = "lifestealmod";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    final HashMap<UUID, Integer> newHeartCooldown = new HashMap<>();	// hash map for storing cooldowns of heart additions for each player
+    // hash map for storing cooldowns of heart additions for each player
+    final HashMap<UUID, Integer> newHeartCooldown = new HashMap<>();
 
     /**
-     * onInitialize() calls all the methods associated with registering events
+     * onInitialize() calls all the methods associated with registering events.
      */
     @Override
     public void onInitialize() {
@@ -39,7 +40,7 @@ public class LifestealMod implements ModInitializer {
 
     /**
      * registerEvents() has the event "ALLOW_DEATH" which handles the calling of the method that gives and
-     * takes player hearts away
+     * takes player hearts away.
      */
     private void registerEvents() {
 
@@ -49,6 +50,7 @@ public class LifestealMod implements ModInitializer {
             // if entity that took damage is player
             if (entity instanceof PlayerEntity) {
 
+                // create a heart stack
                 ItemStack heartStack = new ItemStack(ModItems.HEART);
 
                 // create a player variable that stores the entity and get the max health of the player
@@ -66,13 +68,15 @@ public class LifestealMod implements ModInitializer {
                         // if killed player health cap is above min heart cap
                         if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
-                            // increase player health and send a message to the player
+                            // increase player health and send a message to the attacker
                             increasePlayerHealth(attacker, (double) ModConfig.instance().heartIncrease * 2);
                             attacker.sendMessage(Text.literal("You gained a heart!"), false);
                         }
 
                         // if killed player health cap is equal or below min heart cap
                         else {
+
+                            // send message to attacker
                             attacker.sendMessage(Text.literal("The player you killed does not have the minimum required hearts to give you."), false);
                         }
                     }
@@ -80,7 +84,7 @@ public class LifestealMod implements ModInitializer {
                     if (attackerMaxHealth >= ModConfig.instance().maxHeartCap * 2) {
                         if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
-                            // decrease player health, send message to attacker, and drop heart
+                            // decrease player health, send message to attacker, and drop heart to attacker
                             decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
                             attacker.sendMessage(Text.literal("You have reached the maximum heart limit, a heart has been dropped!"), false);
                             attacker.giveItemStack(heartStack);
@@ -96,6 +100,7 @@ public class LifestealMod implements ModInitializer {
                     if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
                         // decrease player health and send a message to the player
+                        decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
                         player.sendMessage(Text.literal("You lost a heart!"), false);
                     }
 
@@ -200,16 +205,16 @@ public class LifestealMod implements ModInitializer {
 
     /**
      * increasePlayerHealth() takes the argument of player, then gets the health of the player originally
-     * and adds the value of healthIncrease from the file "ModConfig"
+     * and adds the value of healthIncrease from the file "ModConfig".
      */
     public static void increasePlayerHealth(PlayerEntity player, double amount) {
         double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH); // store player max health in a double
-        player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(playerMaxHealth + amount); // decrease playerMaxHealth by healthDecrease
+        player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(playerMaxHealth + amount); // increase playerMaxHealth by healthIncrease
     }
 
     /**
      * decreasePlayerHealth() takes the argument of player, then gets the health of the player originally
-     * and adds the negative value of healthIncrease from the file "ModConfig"
+     * and adds the negative value of healthIncrease from the file "ModConfig".
      */
     public static void decreasePlayerHealth(PlayerEntity player, double amount) {
         double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH); // store player max health in a double

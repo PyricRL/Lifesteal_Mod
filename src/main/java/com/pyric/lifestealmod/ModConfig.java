@@ -32,6 +32,9 @@ public class ModConfig{
     public int heartRegenTime;
     public boolean heartWithdraw;
 
+    /**
+     * ModConfig() sets the values of the ModConfig to the default values.
+     */
     public ModConfig() {
         this.maxHeartCap = defaultMaxHeartCap;
         this.minHeartCap = defaultMinHeartCap;
@@ -43,10 +46,16 @@ public class ModConfig{
         this.heartWithdraw = defaultHeartWithdraw;
     }
 
+    /**
+     * instance() creates an instance of the ModConfig if it is not there, and returns the instance.
+     */
     public static ModConfig instance() {
         return config == null ? config = load() : config;
     }
 
+    /**
+     *  load() loads the config settings from a json file using GSON.
+     */
     private static ModConfig load() {
         if (Files.exists(CONFIG_FILE)) {
             try (var reader = Files.newBufferedReader(CONFIG_FILE)) {
@@ -58,6 +67,9 @@ public class ModConfig{
         return new ModConfig();
     }
 
+    /**
+     * save() saves the config settings to a json file using GSON.
+     */
     public void save() {
         try (var writer = Files.newBufferedWriter(CONFIG_FILE)) {
             GSON.toJson(config, writer);
