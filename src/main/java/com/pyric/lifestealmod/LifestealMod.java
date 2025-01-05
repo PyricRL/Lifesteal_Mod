@@ -97,11 +97,13 @@ public class LifestealMod implements ModInitializer {
                     }
 
                     // if killed player health is greater than min health cap
-                    if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
+                    else if (attackerMaxHealth < ModConfig.instance().maxHeartCap * 2){
+                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
 
-                        // decrease player health and send a message to the player
-                        decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
-                        player.sendMessage(Text.literal("You lost a heart!"), false);
+                            // decrease player health and send a message to the player
+                            decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
+                            player.sendMessage(Text.literal("You lost a heart!"), false);
+                        }
                     }
 
                     // if killed player health is less than or equal to min health cap
@@ -165,6 +167,7 @@ public class LifestealMod implements ModInitializer {
 
             // if heart regen is turned on
             if (ModConfig.instance().heartRegen) {
+
                 // for each player in the server
                 for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
 
@@ -189,17 +192,8 @@ public class LifestealMod implements ModInitializer {
                 }
             }
 
-            for (UUID key : newHeartCooldown.keySet()) {
-                boolean playerInKey = false;
-                for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                    if (key == player.getUuid()) {
-                        playerInKey = true;
-                    }
-                }
-                if (!playerInKey) {
-                    newHeartCooldown.remove(key);
-                }
-            }
+            // checks if player is not online and removes their UUID and cooldown from the hashmap
+            newHeartCooldown.keySet().removeIf((uuid) -> server.getPlayerManager().getPlayer(uuid) == null);
         });
     }
 
