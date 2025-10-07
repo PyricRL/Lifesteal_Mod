@@ -3,7 +3,6 @@ package com.pyric.lifestealmod;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import com.terraformersmc.modmenu.util.mod.Mod;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.file.Files;
@@ -14,6 +13,13 @@ public class ModConfig{
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static ModConfig config;
 
+    public enum ZeroHeartActions {
+        BAN,
+        CREATIVE,
+        SPECTATOR,
+        RESET;
+    }
+
     public static final int defaultMaxHeartCap = 20;
     public static final int defaultMinHeartCap = 7;
     public static final int defaultHeartIncrease = 1;
@@ -22,6 +28,9 @@ public class ModConfig{
     public static final int defaultHeartRegenAmount = 10;
     public static final int defaultHeartRegenTime = 30;
     public static final boolean defaultHeartWithdraw = true;
+    public static final boolean defaultCraftingRecipeEnabled = true;
+    public static final ZeroHeartActions defaultZeroHeartAction = ZeroHeartActions.BAN;
+    public static final boolean defaultMobKillHeartLoss = false;
 
     public int maxHeartCap;
     public int minHeartCap;
@@ -31,6 +40,9 @@ public class ModConfig{
     public int heartRegenAmount;
     public int heartRegenTime;
     public boolean heartWithdraw;
+    public boolean craftingRecipeEnabled;
+    public ZeroHeartActions zeroHeartAction;
+    public boolean mobKillHeartLoss;
 
     /**
      * ModConfig() sets the values of the ModConfig to the default values.
@@ -44,6 +56,9 @@ public class ModConfig{
         this.heartRegenAmount = defaultHeartRegenAmount;
         this.heartRegenTime = defaultHeartRegenTime;
         this.heartWithdraw = defaultHeartWithdraw;
+        this.craftingRecipeEnabled = defaultCraftingRecipeEnabled;
+        this.zeroHeartAction = defaultZeroHeartAction;
+        this.mobKillHeartLoss = defaultMobKillHeartLoss;
     }
 
     /**

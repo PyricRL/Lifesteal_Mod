@@ -7,7 +7,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 public class LifestealModConfigScreen {
-
     /**
      * create() creates the screen for the Mod Menu, adds a title to it, and adds all the configuration settings to it.
      */
@@ -70,6 +69,30 @@ public class LifestealModConfigScreen {
                 .setDefaultValue(ModConfig.defaultHeartRegen)
                 .setTooltip(Text.translatable("Sets whether heart regeneration is allowed"))
                 .setSaveConsumer(newValue -> ModConfig.instance().heartRegen = newValue)
+                .build());
+
+        // adds an option for "Allow Heart Crafting"
+        extra.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("Allow Heart Crafting"), ModConfig.instance().craftingRecipeEnabled)
+                .setDefaultValue(ModConfig.defaultCraftingRecipeEnabled)
+                .setTooltip(Text.translatable("Sets whether heart crafting is allowed"))
+                .setSaveConsumer(newValue -> ModConfig.instance().craftingRecipeEnabled = newValue)
+                .build());
+
+        // adds an option for "Result on Zero Hearts"
+        extra.addEntry(entryBuilder
+                .startEnumSelector(Text.translatable("Zero Heart Action"), ModConfig.ZeroHeartActions.class, ModConfig.instance().zeroHeartAction)
+                .setDefaultValue(ModConfig.defaultZeroHeartAction)
+                .setTooltip(Text.translatable("What happens when a player reaches 0 hearts\n*Must have min heart value on 0*"))
+                .setSaveConsumer(newValue -> ModConfig.instance().zeroHeartAction = newValue)
+                .build());
+
+        // adds an option for "Mob Kill Heart Loss"
+        extra.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("Mob Kill Heart Loss"), ModConfig.instance().mobKillHeartLoss)
+                .setDefaultValue(ModConfig.defaultMobKillHeartLoss)
+                .setTooltip(Text.translatable("Sets whether you lose a heart when killed by a mob"))
+                .setSaveConsumer(newValue -> ModConfig.instance().mobKillHeartLoss = newValue)
                 .build());
 
         // adds an option for "Heart Regeneration Amount"

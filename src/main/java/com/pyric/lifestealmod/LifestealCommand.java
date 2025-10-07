@@ -25,21 +25,25 @@ public class LifestealCommand {
      */
     private static int runHelp(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
-        ServerPlayerEntity player = source.getPlayer();
 
-        player.sendMessage(Text.literal("§6---- Lifesteal Mod Help ----"), false);
-        player.sendMessage(Text.literal("§e/lifesteal set <player> <min|max> <amount> §7- Set min or max hearts"), false);
-        player.sendMessage(Text.literal("§e/lifesteal ondeath <gain|lose> <amount> §7- Hearts gained/lost on death"), false);
-        player.sendMessage(Text.literal("§e/lifesteal onkill <gain|lose> <amount> §7- Hearts gained/lost on kill"), false);
-        player.sendMessage(Text.literal("§e/lifesteal regen <enable|disable> §7- Enable or disable heart regeneration"), false);
-        player.sendMessage(Text.literal("§e/lifesteal regentime <seconds> §7- Time to regenerate one heart"), false);
-        player.sendMessage(Text.literal("§e/lifesteal withdraw <enable|disable> §7- Enable or disable heart withdrawal"), false);
+        if (source.hasPermissionLevel(2)) {
+            source.sendMessage(Text.literal("§6---- Lifesteal Mod Help ----"));
+            source.sendMessage(Text.literal("§e/lifesteal set <player> <min|max> <amount> §7- Set min or max hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal ondeath <gain|lose> <amount> §7- Hearts gained/lost on death"));
+            source.sendMessage(Text.literal("§e/lifesteal onkill <gain|lose> <amount> §7- Hearts gained/lost on kill"));
+            source.sendMessage(Text.literal("§e/lifesteal regen <enable|disable> §7- Enable or disable heart regeneration"));
+            source.sendMessage(Text.literal("§e/lifesteal regentime <seconds> §7- Time to regenerate one heart"));
+            source.sendMessage(Text.literal("§e/lifesteal withdraw <enable|disable> §7- Enable or disable heart withdrawal"));
+        } else {
+            source.sendMessage(Text.literal("§6---- Lifesteal Mod Help ----"));
+            source.sendMessage(Text.literal("§e/lifesteal withdraw <amount> §7- Withdraw an amount of hearts"));
+        }
 
         return 1;
     }
 
     /**
-     * runWithdrawHeart() checks whether the heartWithdraw variable is set to true in the config,
+     * runWithdraw() checks whether the heartWithdraw variable is set to true in the config,
      * then runs a series of checks and takes a set amount of player hearts away and puts them into the
      * players inventory.
      */
@@ -102,9 +106,8 @@ public class LifestealCommand {
             serverPlayerEntity.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(config.maxHeartCap * 2);
             serverPlayerEntity.setHealth(20.0f);
             serverPlayerEntity.sendMessage(Text.literal("Player reset successfully"), false);
-            return 1;
         }
-        return 0;
+        return 1;
     }
 
     /**
@@ -246,7 +249,7 @@ public class LifestealCommand {
     }
 
     /**
-     * runReset() is a command accessible via the server, and resets all config options to default.
+     * runResetSettings() is a command accessible via the server, and resets all config options to default.
      */
     private static int runResetSettings(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         ModConfig config = ModConfig.instance();
@@ -294,6 +297,10 @@ public class LifestealCommand {
 
         return 1;
     }
+
+    /**
+     * run
+     */
 
     /**
      * Setup for helpCommand
@@ -403,7 +410,7 @@ public class LifestealCommand {
     }
 
     /**
-     * Setup for setHeartRegenCommand()
+     * Setup for setRegenCommand()
      */
     private static LiteralCommandNode<ServerCommandSource> setRegenCommand() {
         LiteralCommandNode<ServerCommandSource> setRegenNode = CommandManager
@@ -439,7 +446,7 @@ public class LifestealCommand {
      */
     private static LiteralCommandNode<ServerCommandSource> setWithdrawCommand() {
         LiteralCommandNode<ServerCommandSource> setWithdrawNode = CommandManager
-                .literal("withdraw")
+                .literal("setwithdraw")
                 .build();
         ArgumentCommandNode<ServerCommandSource, Boolean> setWithdrawBoolNode = CommandManager
                 .argument("enabled", BoolArgumentType.bool())
@@ -455,7 +462,7 @@ public class LifestealCommand {
      */
     private static LiteralCommandNode<ServerCommandSource> resetSettingsCommand() {
         LiteralCommandNode<ServerCommandSource> resetSettingsNode = CommandManager
-                .literal("reset")
+                .literal("resetsettings")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(LifestealCommand::runResetSettings)
                 .build();

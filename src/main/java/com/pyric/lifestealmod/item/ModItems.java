@@ -30,5 +30,4 @@ public class ModItems {
             entries.add(HEART);
         });
     }
-
 }
