@@ -7,15 +7,22 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.BannedPlayerEntry;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Identifier;
+import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -34,6 +41,8 @@ public class LifestealMod implements ModInitializer {
         registerEvents();
         ModItems.registerModItems();
 
+        ResourceConditions.register(ConfigEnabledCondition.TYPE);
+
         CommandRegistrationCallback.EVENT.register(LifestealCommand::registerCommands);
         ModConfig.instance().save();
     }
@@ -45,79 +54,84 @@ public class LifestealMod implements ModInitializer {
     private void registerEvents() {
 
         // fatal damage taken
-        ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (!(entity instanceof PlayerEntity player)) return;
 
-            // if entity that took damage is player
-            if (entity instanceof PlayerEntity) {
+            double minHealth = ModConfig.instance().minHeartCap * 2;
+            double maxHealth = ModConfig.instance().maxHeartCap * 2;
+            double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
-                // create a heart stack
-                ItemStack heartStack = new ItemStack(ModItems.HEART);
+            // confirm attacker is an entity, and set type
+            PlayerEntity attacker = (source.getAttacker() instanceof PlayerEntity p) ? p : null;
 
-                // create a player variable that stores the entity and get the max health of the player
-                PlayerEntity player = (PlayerEntity) entity;
-                double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
+            if (attacker != null) {
+                double attackerMaxHealth = attacker.getMaxHealth();
 
-                // if damage done was by a player
-                if (source.getAttacker() instanceof PlayerEntity) {
-                    PlayerEntity attacker = (PlayerEntity) source.getAttacker();
-                    double attackerMaxHealth = attacker.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
+                if (playerMaxHealth > minHealth) {
+                    // decrease killed player health
+                    decreasePlayerHealth(player, ModConfig.instance().heartDecrease * 2);
 
-                    // if attacker health is less than max heart cap
-                    if (attackerMaxHealth < ModConfig.instance().maxHeartCap * 2) {
-
-                        // if killed player health cap is above min heart cap
-                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
-
-                            // increase player health and send a message to the attacker
-                            increasePlayerHealth(attacker, (double) ModConfig.instance().heartIncrease * 2);
-                            attacker.sendMessage(Text.literal("You gained a heart!"), false);
-                        }
-
-                        // if killed player health cap is equal or below min heart cap
-                        else {
-
-                            // send message to attacker
-                            attacker.sendMessage(Text.literal("The player you killed does not have the minimum required hearts to give you."), false);
-                        }
+                    // increase attacker health if not at cap
+                    if (attackerMaxHealth < maxHealth) {
+                        increasePlayerHealth(attacker, ModConfig.instance().heartIncrease * 2);
+                        attacker.sendMessage(Text.literal("You gained a heart!"), false);
+                        LifestealMod.LOGGER.info("Player " + attacker.getName().getString() + " gained a heart.");
+                    } else {
+                        // attacker is at max heart cap, drop a heart item
+                        attacker.giveItemStack(new ItemStack(ModItems.HEART));
+                        attacker.sendMessage(Text.literal("You gained a heart! It was dropped to you because you hit the heart cap."), false);
+                        LifestealMod.LOGGER.info("Player " + attacker.getName().getString() + " gained a heart.");
                     }
 
-                    if (attackerMaxHealth >= ModConfig.instance().maxHeartCap * 2) {
-                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
-
-                            // decrease player health, send message to attacker, and drop heart to attacker
-                            decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
-                            attacker.sendMessage(Text.literal("You have reached the maximum heart limit, a heart has been dropped!"), false);
-                            attacker.giveItemStack(heartStack);
-                        }
-
-                        // if killed player health cap is equal or below min heart cap
-                        else {
-                            attacker.sendMessage(Text.literal("The player you killed does not have the minimum required hearts to give you."), false);
-                        }
-                    }
-
-                    // if killed player health is greater than min health cap
-                    else if (attackerMaxHealth < ModConfig.instance().maxHeartCap * 2){
-                        if (playerMaxHealth > ModConfig.instance().minHeartCap * 2) {
-
-                            // decrease player health and send a message to the player
-                            decreasePlayerHealth(player, (double) ModConfig.instance().heartDecrease * 2);
-                            player.sendMessage(Text.literal("You lost a heart!"), false);
-                        }
-                    }
-
-                    // if killed player health is less than or equal to min health cap
-                    else {
-                        player.sendMessage(Text.literal("Your heart count is too low to lose a heart."), false);
-                    }
+                    player.sendMessage(Text.literal("You lost a heart!"), false);
+                    LifestealMod.LOGGER.info("Player " + player.getName().getString() + " lost a heart.");
+                } else {
+                    player.sendMessage(Text.literal("Your heart count is too low to lose a heart."), false);
+                    attacker.sendMessage(Text.literal("The player you killed did not have a sufficient amount of hearts to give you."), false);
                 }
-                // if you didn't die to player
-                else {
-                    player.sendMessage(Text.literal("You didn't lose a heart due to not dying by a player"), false);
+
+                // handle what happens when 0 hearts
+                if (player.getMaxHealth() <= 1 && player instanceof ServerPlayerEntity serverPlayer) {
+                    MinecraftServer server = serverPlayer.getServer();
+                    if (server != null && !server.isSingleplayer()) {
+                        switch (ModConfig.instance().zeroHeartAction) {
+                            case BAN -> {
+                                BannedPlayerEntry entry = new BannedPlayerEntry(player.getGameProfile(), new Date(), "Server", null, "Lost all hearts");
+                                server.getPlayerManager().getUserBanList().add(entry);
+                                serverPlayer.networkHandler.disconnect(Text.literal("You lost all of your hearts, now you are banned."));
+                                LifestealMod.LOGGER.info("Player " + player.getName().getString() + " was banned for losing all hearts.");
+                            }
+                            case CREATIVE -> {
+                                serverPlayer.changeGameMode(GameMode.CREATIVE);
+                                serverPlayer.sendMessage(Text.literal("You lost all of your hearts, now you are in creative."));
+                                LifestealMod.LOGGER.info("Player " + player.getName().getString() + " was put in creative for losing all hearts");
+                            }
+                            case SPECTATOR -> {
+                                serverPlayer.changeGameMode(GameMode.SPECTATOR);
+                                serverPlayer.sendMessage(Text.literal("You lost all of your hearts, now you are in spectator."));
+                                LifestealMod.LOGGER.info("Player " + player.getName().getString() + " was put in spectator for losing all hearts.");
+                            }
+                            case RESET -> {
+                                player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(10);
+                                player.setHealth(10);
+                                serverPlayer.sendMessage(Text.literal("You lost all of your hearts, now you are reset back to 10."));
+                                LifestealMod.LOGGER.info("Player " + player.getName().getString() + " was reset for losing all hearts.");
+                            }
+                        }
+                    }
                 }
             }
-            // return false so that it won't do anything if it doesn't pass any checks
-            return false;
+
+            // handle deaths from mobs
+            else if (source.getAttacker() instanceof MobEntity && ModConfig.instance().mobKillHeartLoss) {
+                if (playerMaxHealth > minHealth) {
+                    decreasePlayerHealth(player, ModConfig.instance().heartDecrease * 2);
+                    player.sendMessage(Text.literal("You lost a heart! Current max health: " + player.getMaxHealth()), false);
+                    LifestealMod.LOGGER.info("Player " + player.getName().getString() + " lost a heart to a mob.");
+                } else {
+                    player.sendMessage(Text.literal("Your heart count is too low to lose a heart."), false);
+                }
+            }
         });
 
         // Register the player holding an item (parameters give you info about which event)
@@ -125,11 +139,9 @@ public class LifestealMod implements ModInitializer {
 
             // Get the stack that the player is holding
             ItemStack itemStack = player.getStackInHand(hand);
-            ItemStack heartStack = new ItemStack(ModItems.HEART);
 
             // if the player is holding my custom heart item and the name of it is "Heart"
-            if (itemStack.getItem() == ModItems.HEART
-                    && itemStack.getName().getString().equals("Heart")) {
+            if (itemStack.getItem() == ModItems.HEART && itemStack.isOf(ModItems.HEART)) {
 
                 // if person holding is player
                 if (player instanceof ServerPlayerEntity) {
