@@ -3,6 +3,7 @@ package com.pyric.lifestealmod;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
@@ -25,21 +26,34 @@ public class LifestealCommand {
      */
     private static int runHelp(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
-        ServerPlayerEntity player = source.getPlayer();
 
-        player.sendMessage(Text.literal("§6---- Lifesteal Mod Help ----"), false);
-        player.sendMessage(Text.literal("§e/lifesteal set <player> <min|max> <amount> §7- Set min or max hearts"), false);
-        player.sendMessage(Text.literal("§e/lifesteal ondeath <gain|lose> <amount> §7- Hearts gained/lost on death"), false);
-        player.sendMessage(Text.literal("§e/lifesteal onkill <gain|lose> <amount> §7- Hearts gained/lost on kill"), false);
-        player.sendMessage(Text.literal("§e/lifesteal regen <enable|disable> §7- Enable or disable heart regeneration"), false);
-        player.sendMessage(Text.literal("§e/lifesteal regentime <seconds> §7- Time to regenerate one heart"), false);
-        player.sendMessage(Text.literal("§e/lifesteal withdraw <enable|disable> §7- Enable or disable heart withdrawal"), false);
+        source.sendMessage(Text.literal("§6---- Lifesteal Mod Help ----"));
+
+        if (source.hasPermissionLevel(2)) {
+            source.sendMessage(Text.literal("§e/lifesteal help §7- Show this help message"));
+            source.sendMessage(Text.literal("§e/lifesteal setmax <amount> §7- Set max hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal setmin <amount> §7- Set min hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal gain <amount> §7- Hearts gained per kill"));
+            source.sendMessage(Text.literal("§e/lifesteal loss <amount> §7- Hearts lost per death"));
+            source.sendMessage(Text.literal("§e/lifesteal regen <enable|disable> §7- Enable or disable heart regeneration"));
+            source.sendMessage(Text.literal("§e/lifesteal setregenamount <amount> §7- Set amount of hearts per regen"));
+            source.sendMessage(Text.literal("§e/lifesteal setregentime <time> §7- Set time in minnutes before heart regen"));
+            source.sendMessage(Text.literal("§e/lifesteal withdraw <amount> §7- Withdraw an amount of hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal setwithdraw <enable|disable> §7- Enable or disable heart withdrawal"));
+            source.sendMessage(Text.literal("§e/lifesteal setheartcrafting <enable|disable> §7- Enable or disable heart crafting"));
+            source.sendMessage(Text.literal("§e/lifesteal zeroheartaction <action> §7- Set action when reaching 0 hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal setmobheartloss <enable|disable> §7- Enable or disable mob kill heart loss"));
+            source.sendMessage(Text.literal("§e/lifesteal reset <player(s)> §7- Reset player hearts"));
+            source.sendMessage(Text.literal("§e/lifesteal resetsettings §7- Reset all mod settings to default"));
+        } else {
+            source.sendMessage(Text.literal("§e/lifesteal withdraw <amount> §7- Withdraw an amount of hearts"));
+        }
 
         return 1;
     }
 
     /**
-     * runWithdrawHeart() checks whether the heartWithdraw variable is set to true in the config,
+     * runWithdraw() checks whether the heartWithdraw variable is set to true in the config,
      * then runs a series of checks and takes a set amount of player hearts away and puts them into the
      * players inventory.
      */
@@ -69,7 +83,7 @@ public class LifestealCommand {
             }
 
             // if player health is greater than the amount they want to withdraw
-            if (playerMaxHealth >= amount) {
+            if (playerMaxHealth >= amount * 2) {
 
                 // decrease player health, drop item, and send message to player
                 LifestealMod.decreasePlayerHealth(player, amount * 2);
@@ -102,9 +116,8 @@ public class LifestealCommand {
             serverPlayerEntity.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(config.maxHeartCap * 2);
             serverPlayerEntity.setHealth(20.0f);
             serverPlayerEntity.sendMessage(Text.literal("Player reset successfully"), false);
-            return 1;
         }
-        return 0;
+        return 1;
     }
 
     /**
@@ -246,7 +259,7 @@ public class LifestealCommand {
     }
 
     /**
-     * runReset() is a command accessible via the server, and resets all config options to default.
+     * runResetSettings() is a command accessible via the server, and resets all config options to default.
      */
     private static int runResetSettings(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         ModConfig config = ModConfig.instance();
@@ -259,12 +272,16 @@ public class LifestealCommand {
 
         // reset values
         config.maxHeartCap = ModConfig.defaultMaxHeartCap;
+        config.minHeartCap = ModConfig.defaultMinHeartCap;
         config.heartIncrease = ModConfig.defaultHeartIncrease;
         config.heartDecrease = ModConfig.defaultHeartDecrease;
         config.heartRegen = ModConfig.defaultHeartRegen;
         config.heartRegenAmount = ModConfig.defaultHeartRegenAmount;
         config.heartRegenTime = ModConfig.defaultHeartRegenTime;
         config.heartWithdraw = ModConfig.defaultHeartWithdraw;
+        config.craftingRecipeEnabled = ModConfig.defaultCraftingRecipeEnabled;
+        config.zeroHeartAction = ModConfig.defaultZeroHeartAction;
+        config.mobKillHeartLoss = ModConfig.defaultMobKillHeartLoss;
 
         config.save();
 
@@ -286,11 +303,75 @@ public class LifestealCommand {
 
                 // Modify health amount
                 player.setHealth(healthMax);
-                player.sendMessage(Text.literal("Your min hearts have been updated to " + heartMax), false);
+                player.sendMessage(Text.literal("Your max hearts have been updated to " + heartMax), false);
             }
         }
 
         context.getSource().sendMessage(Text.literal("Reset all values to default"));
+
+        return 1;
+    }
+
+    /**
+     * runSetRegenAmount() is a command accessible via the server, and sets the amount of hearts that gained when
+     * regenerating.
+     */
+    private static int runSetRegenAmount(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        int amount = IntegerArgumentType.getInteger(context, "amount");
+        ModConfig config = ModConfig.instance();
+
+        config.heartRegenAmount = amount;
+        config.save();
+
+        context.getSource().sendMessage(Text.literal("Heart regen amount set to " + amount + " hearts."));
+
+        return 1;
+    }
+
+    /**
+     * runSetHeartCrafting() is a command accessible via the server, and sets whether you can craft a heart.
+     */
+    private static int runSetHeartCrafting(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        boolean enabled = BoolArgumentType.getBool(context, "enabled");
+        ModConfig config = ModConfig.instance();
+
+        config.craftingRecipeEnabled = enabled;
+        config.save();
+
+        context.getSource().sendMessage(Text.literal("Heart crafting set to " + enabled));
+
+        return 1;
+    }
+
+    /**
+     * runSetZeroHeartAction() is a command accessible via the server, and sets what to do when someone hits 0 hearts.
+     */
+    private static int runSetZeroHeartAction(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        String actionName = StringArgumentType.getString(context, "action"); // use your argument name
+
+        try {
+            ModConfig.ZeroHeartActions action = ModConfig.ZeroHeartActions.valueOf(actionName.toUpperCase());
+            ModConfig.instance().zeroHeartAction = action; // set it in the config
+            ModConfig.instance().save();
+            context.getSource().sendMessage(Text.literal("Zero heart action set to " + action));
+        } catch (IllegalArgumentException e) {
+            context.getSource().sendError(Text.literal("Invalid action!"));
+        }
+        return 1;
+    }
+
+    /**
+     * runSetMobHeartLoss() is a command accessible via the server, and sets whether a player loses a heat when a mob
+     * kills them.
+     */
+    private static int runSetMobHeartLoss(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        boolean enabled = BoolArgumentType.getBool(context, "enabled");
+        ModConfig config = ModConfig.instance();
+
+        config.mobKillHeartLoss = enabled;
+        config.save();
+
+        context.getSource().sendMessage(Text.literal("Mob kill heart loss set to " + enabled));
 
         return 1;
     }
@@ -403,7 +484,7 @@ public class LifestealCommand {
     }
 
     /**
-     * Setup for setHeartRegenCommand()
+     * Setup for setRegenCommand()
      */
     private static LiteralCommandNode<ServerCommandSource> setRegenCommand() {
         LiteralCommandNode<ServerCommandSource> setRegenNode = CommandManager
@@ -439,7 +520,7 @@ public class LifestealCommand {
      */
     private static LiteralCommandNode<ServerCommandSource> setWithdrawCommand() {
         LiteralCommandNode<ServerCommandSource> setWithdrawNode = CommandManager
-                .literal("withdraw")
+                .literal("setwithdraw")
                 .build();
         ArgumentCommandNode<ServerCommandSource, Boolean> setWithdrawBoolNode = CommandManager
                 .argument("enabled", BoolArgumentType.bool())
@@ -455,11 +536,82 @@ public class LifestealCommand {
      */
     private static LiteralCommandNode<ServerCommandSource> resetSettingsCommand() {
         LiteralCommandNode<ServerCommandSource> resetSettingsNode = CommandManager
-                .literal("reset")
+                .literal("resetsettings")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(LifestealCommand::runResetSettings)
                 .build();
         return resetSettingsNode;
+    }
+
+    /**
+     * Setup for setRegenAmountCommand()
+     */
+    private static LiteralCommandNode<ServerCommandSource> setRegenAmountCommand() {
+        LiteralCommandNode<ServerCommandSource> setRegenNode = CommandManager
+                .literal("setregenamount")
+                .build();
+        ArgumentCommandNode<ServerCommandSource, Integer> setRegenAmountNode = CommandManager
+                .argument("amount", IntegerArgumentType.integer())
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(LifestealCommand::runSetRegenAmount)
+                .build();
+        setRegenNode.addChild(setRegenAmountNode);
+        return setRegenNode;
+    }
+
+    /**
+     * Setup for setHeartCraftingCommand()
+     */
+    private static LiteralCommandNode<ServerCommandSource> setHeartCraftingCommand() {
+        LiteralCommandNode<ServerCommandSource> setHeartCraftingNode = CommandManager
+                .literal("setheartcrafting")
+                .build();
+        ArgumentCommandNode<ServerCommandSource, Boolean> setHeartCraftingBoolNode = CommandManager
+                .argument("enabled", BoolArgumentType.bool())
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(LifestealCommand::runSetHeartCrafting)
+                .build();
+        setHeartCraftingNode.addChild(setHeartCraftingBoolNode);
+        return setHeartCraftingNode;
+    }
+
+    /**
+     * Setup for setZeroHeartActionCommand()
+     */
+    private static LiteralCommandNode<ServerCommandSource> setZeroHeartActionCommand() {
+        LiteralCommandNode<ServerCommandSource> zeroHeartNode = CommandManager
+                .literal("zeroheartaction")
+                .build();
+        ArgumentCommandNode<ServerCommandSource, String> zeroHeartActionNode = CommandManager
+                .argument("action", StringArgumentType.word())
+                .suggests((context, builder) -> {
+                    // Suggest all enum names for tab completion
+                    for (ModConfig.ZeroHeartActions action : ModConfig.ZeroHeartActions.values()) {
+                        builder.suggest(action.name());
+                    }
+                    return builder.buildFuture();
+                })
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(LifestealCommand::runSetZeroHeartAction)
+                .build();
+        zeroHeartNode.addChild(zeroHeartActionNode);
+        return zeroHeartNode;
+    }
+
+    /**
+     * Setup for setMobHeartLossCommand()
+     */
+    private static LiteralCommandNode<ServerCommandSource> setMobHeartLossCommand() {
+        LiteralCommandNode<ServerCommandSource> setMobHeartLossNode = CommandManager
+                .literal("setmobheartloss")
+                .build();
+        ArgumentCommandNode<ServerCommandSource, Boolean> setMobHeartLossBoolNode = CommandManager
+                .argument("enabled", BoolArgumentType.bool())
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(LifestealCommand::runSetMobHeartLoss)
+                .build();
+        setMobHeartLossNode.addChild(setMobHeartLossBoolNode);
+        return setMobHeartLossNode;
     }
 
     /**
@@ -470,16 +622,32 @@ public class LifestealCommand {
 
         dispatcher.getRoot().addChild(lifestealNode);
 
+        // Basic commands
         lifestealNode.addChild(helpCommand());
         lifestealNode.addChild(withdrawCommand());
         lifestealNode.addChild(resetCommand());
+
+        // Heart commands
         lifestealNode.addChild(setHeartMaxCommand());
         lifestealNode.addChild(setHeartMinCommand());
         lifestealNode.addChild(setHeartGainCommand());
         lifestealNode.addChild(setHeartLossCommand());
+
+        // Regen commands
         lifestealNode.addChild(setRegenCommand());
         lifestealNode.addChild(setRegenTimeCommand());
+        lifestealNode.addChild(setRegenAmountCommand());
+
+        // Withdraw command
         lifestealNode.addChild(setWithdrawCommand());
+
+        // Crafting / zero heart / mob loss commands
+        lifestealNode.addChild(setHeartCraftingCommand());
+        lifestealNode.addChild(setZeroHeartActionCommand());
+        lifestealNode.addChild(setMobHeartLossCommand());
+
+        // Reset settings
         lifestealNode.addChild(resetSettingsCommand());
     }
+
 }
