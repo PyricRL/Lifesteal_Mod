@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.BannedPlayerEntry;
@@ -40,14 +41,11 @@ public class LifestealMod implements ModInitializer {
         registerEvents();
         ModItems.registerModItems();
 
+        ResourceConditions.register(ConfigEnabledCondition.TYPE);
+
         CommandRegistrationCallback.EVENT.register(LifestealCommand::registerCommands);
         ModConfig.instance().save();
     }
-
-    /**
-     * Register the recipes depending on a variable
-     */
-    public static final Identifier HEART_RECIPE_ID = Identifier.of("lifestealmod", "heart");
 
     /**
      * registerEvents() has the event "ALLOW_DEATH" which handles the calling of the method that gives and
@@ -141,7 +139,6 @@ public class LifestealMod implements ModInitializer {
 
             // Get the stack that the player is holding
             ItemStack itemStack = player.getStackInHand(hand);
-            ItemStack heartStack = new ItemStack(ModItems.HEART);
 
             // if the player is holding my custom heart item and the name of it is "Heart"
             if (itemStack.getItem() == ModItems.HEART && itemStack.isOf(ModItems.HEART)) {
