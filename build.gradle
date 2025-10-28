@@ -75,6 +75,11 @@ jar {
 	}
 }
 
+tasks.named("remapJar") {
+    it.archiveFileName.set("lifestealmod_${project.version}.jar")
+}
+
+
 // configure the maven publication
 publishing {
 	publications {
