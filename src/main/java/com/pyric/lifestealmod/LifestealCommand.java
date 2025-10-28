@@ -377,6 +377,28 @@ public class LifestealCommand {
     }
 
     /**
+     * runSetPlayerHeart() is a command accessible via the server, and can set a players hearts to a certain value
+     */
+    private static int runSetPlayerHearts(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        // get int arg for hearts
+        int hearts = Math.min(IntegerArgumentType.getInteger(context, "amount"), ModConfig.instance().maxHeartCap);
+        ServerCommandSource source = context.getSource();
+
+        for (ServerPlayerEntity serverPlayerEntity : EntityArgumentType.getPlayers(context, "players")) {
+            // set player max hearts * 2
+            serverPlayerEntity.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(hearts * 2);
+
+            // set max health to hearts
+            serverPlayerEntity.setHealth(serverPlayerEntity.getMaxHealth());
+
+            // log
+            serverPlayerEntity.sendMessage(Text.literal("You were given " + hearts + " hearts by an admin!"), false);
+            source.sendMessage(Text.literal("You gave " + serverPlayerEntity.getName().getString() + " " + hearts + " hearts!"));
+        }
+        return 1;
+    }
+
+    /**
      * Setup for helpCommand
      */
     private static LiteralCommandNode<ServerCommandSource> helpCommand() {
@@ -615,6 +637,26 @@ public class LifestealCommand {
     }
 
     /**
+     * Setup for setPlayerHeartsCommand()
+     */
+    private static LiteralCommandNode<ServerCommandSource> setPlayerHeartsCommand() {
+        LiteralCommandNode<ServerCommandSource> heartNode = CommandManager
+                .literal("setplayerhearts")
+                .requires(source -> source.hasPermissionLevel(2))
+                .build();
+        ArgumentCommandNode<ServerCommandSource, EntitySelector> heartPlayerNode = CommandManager
+                .argument("players", EntityArgumentType.players())
+                .build();
+        ArgumentCommandNode<ServerCommandSource, Integer> heartAmountNode = CommandManager
+                .argument("amount", IntegerArgumentType.integer(1))
+                .executes(LifestealCommand::runSetPlayerHearts)
+                .build();
+        heartPlayerNode.addChild(heartAmountNode);
+        heartNode.addChild(heartPlayerNode);
+        return heartNode;
+    }
+
+    /**
      * registerCommands() registers all nodes to their main command identifier. This method is called in the onInitialize() method in LifestealMod.java.
      */
     public static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
@@ -641,13 +683,13 @@ public class LifestealCommand {
         // Withdraw command
         lifestealNode.addChild(setWithdrawCommand());
 
-        // Crafting / zero heart / mob loss commands
+        // Crafting / zero heart / mob loss commands / give player hearts
         lifestealNode.addChild(setHeartCraftingCommand());
         lifestealNode.addChild(setZeroHeartActionCommand());
         lifestealNode.addChild(setMobHeartLossCommand());
+        lifestealNode.addChild(setPlayerHeartsCommand());
 
         // Reset settings
         lifestealNode.addChild(resetSettingsCommand());
     }
-
 }
