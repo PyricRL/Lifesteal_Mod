@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ModConfig{
-    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("hardcover.json");
+    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("lifestealConfig.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static ModConfig config;
 
@@ -17,7 +17,7 @@ public class ModConfig{
         BAN,
         CREATIVE,
         SPECTATOR,
-        RESET;
+        RESET
     }
 
     public static final int defaultMaxHeartCap = 20;
